@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>Waste Classifier</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+<!-- TensorFlow.js core -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<!-- Teachable Machine Image library (this is what you're missing) -->
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -35,31 +38,27 @@
   <input id="imageInput" type="file" accept="image/*">
   <br>
   <canvas id="canvas" width="400" height="400"></canvas>
-  <div id="output"></div>
+  <div id="output">Select an image to classify.</div>
 
   <script type="text/javascript">
-    const URL = "https://dev54984.github.io/MITAppInventorRepo/"; // Replace with the folder where model.json + metadata.json are hosted
+    const modelPath  = "https://dev54984.github.io/MITAppInventorRepo/"; // model files are in the same folder
 
     let model, maxPredictions;
 
-    // Load the model once
-    async function loadModel() {
-      const modelURL = URL + "model.json";
-      const metadataURL = URL + "metadata.json";
+    // Load the model when page starts
+    window.addEventListener("DOMContentLoaded", async () => {
+      const modelURL = modelPath + "model.json";
+      const metadataURL = modelPath + "metadata.json";
       model = await tmImage.load(modelURL, metadataURL);
       maxPredictions = model.getTotalClasses();
-    }
+    });
 
     // Handle image upload
-    async function handleImage(event) {
+    document.getElementById("imageInput").addEventListener("change", async function(event) {
       const file = event.target.files[0];
       if (!file) {
         console.warn("No file selected.");
         return;
-      }
-
-      if (!model) {
-        await loadModel();
       }
 
       const img = new Image();
@@ -74,15 +73,18 @@
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         // Predict
-        await predict(canvas);
+        const prediction = await model.predict(canvas);
+        let resultText = "";
+        for (let i = 0; i < maxPredictions; i++) {
+          resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
+        }
+        document.getElementById("output").innerHTML = resultText;
       };
-      img.src = URL.createObjectURL(file);
-    }
 
-    async function predict(image) {
-      const prediction = await model.predict(image);
-      let resultText = "";
-      for (let i = 0; i < maxPredictions; i++) {
-        resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
-      }
-      document.getElementById("output").innerHTML = resultText
+      // Trigger image load
+      img.src = URL.createObjectURL(file);
+    });
+  </script>
+
+</body>
+</html>
