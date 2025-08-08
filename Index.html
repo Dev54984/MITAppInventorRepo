@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Waste Classifier</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+</head>
+<body>
+  <h2>Waste Classifier</h2>
+  <video id="webcam" autoplay playsinline width="300" height="300"></video>
+  <button onclick="predict()">Classify</button>
+  <p id="result">Loading...</p>
+
+  <script>
+    const URL = "./"; // model files are in the same folder
+    let model, webcam, maxPredictions;
+
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      const flip = true;
+      webcam = new tmImage.Webcam(300, 300, flip);
+      await webcam.setup();
+      await webcam.play();
+      document.getElementById("webcam").srcObject = webcam.webcam;
+      window.requestAnimationFrame(loop);
+    }
+
+    async function loop() {
+      webcam.update();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      let wet = [], dry = [], hazardous = [];
+
+      prediction.forEach(p => {
+        if (p.probability > 0.7) {
+          switch (p.className) {
+            case "apple scraps":
+            case "banana scraps":
+              wet.push(p.className);
+              break;
+            case "paper balls":
+            case "polythene bags":
+            case "newspapers":
+            case "plastic bottles":
+              dry.push(p.className);
+              break;
+            case "injection syringes":
+            case "batteries":
+              hazardous.push(p.className);
+              break;
+          }
+        }
+      });
+
+      const resultText = `Wet: ${wet.join(", ")} | Dry: ${dry.join(", ")} | Hazardous: ${hazardous.join(", ")}`;
+      document.getElementById("result").innerText = resultText;
+
+      if (window.AppInventor) {
+        window.AppInventor.setWebViewString(resultText);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
