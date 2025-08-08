@@ -15,103 +15,96 @@
 
 <h1>Waste Classification</h1>
 <button onclick="init()">Use Webcam</button>
+<button onclick="captureImage()">Capture</button>
 <input type="file" accept="image/*" onchange="handleImage(event)">
 
 <div id="canvas-container">
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" width="400" height="400"></canvas>
 </div>
+
 <div id="output"></div>
-
 <script type="text/javascript">
-    const URL = "https://dev54984.github.io/MITAppInventorRepo/"; // Example: https://yourusername.github.io/waste-classifier/
+    const URL = "https://dev54984.github.io/MITAppInventorRepo/"; // Set to your model path, e.g., "https://yourusername.github.io/model/"
 
-    let model, webcam, ctx, labelContainer, maxPredictions;
+    let model, webcam, ctx, maxPredictions;
 
-async function init() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-    model = await tmImage.load(modelURL, metadataURL);
-    maxPredictions = model.getTotalClasses();
+        // Load the model
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-    const flip = true;
-    webcam = new tmImage.Webcam(400, 400, flip);
-    await webcam.setup();
-    await webcam.play();
+        // Setup webcam
+        const flip = true;
+        webcam = new tmImage.Webcam(400, 400, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
 
-    window.requestAnimationFrame(loop);
-
-    // Properly replace canvas with webcam view
-    const container = document.getElementById("canvas-container");
-    container.innerHTML = ""; // Clear previous canvas
-    container.appendChild(webcam.canvas);
-
-    ctx = webcam.canvas.getContext("2d");
-}
-
+        // Attach webcam canvas
+        const container = document.getElementById("canvas-container");
+        container.innerHTML = "";
+        container.appendChild(webcam.canvas);
+    }
 
     async function loop() {
         webcam.update();
-        await predict(webcam.canvas);
         window.requestAnimationFrame(loop);
     }
 
-async function handleImage(event) {
-    if (!model) {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-    }
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const img = new Image();
-    img.onload = async () => {
-        let canvas = document.getElementById("canvas");
-        
-        // If canvas doesn't exist (e.g., webcam hasn't been used), create it
-        if (!canvas) {
-            canvas = document.createElement("canvas");
-            canvas.id = "canvas";
-            canvas.width = img.width;
-            canvas.height = img.height;
-            document.body.insertBefore(canvas, document.getElementById("output"));
+    async function captureImage() {
+        if (!webcam) {
+            alert("Please start the webcam first.");
+            return;
         }
 
-        canvas.width = img.width;
-        canvas.height = img.height;
+        // Draw current frame to a new canvas
+        const captureCanvas = document.createElement("canvas");
+        captureCanvas.width = 400;
+        captureCanvas.height = 400;
+        const captureCtx = captureCanvas.getContext("2d");
+        captureCtx.drawImage(webcam.canvas, 0, 0, 400, 400);
 
-        ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        await predict(canvas);
-    };
-    img.src = URL.createObjectURL(file);
-}
-
-    function createCanvas() {
-        const canvas = document.createElement("canvas");
-        canvas.id = "canvas";
-        document.body.insertBefore(canvas, document.getElementById("output"));
-        return canvas;
-    }
-
-    function captureImage() {
-        const canvas = document.createElement("canvas");
-        canvas.width = webcam.canvas.width;
-        canvas.height = webcam.canvas.height;
-        const context = canvas.getContext("2d");
-        context.drawImage(webcam.canvas, 0, 0);
-    
-        // Replace canvas-container with captured image
+        // Show the captured image
         const container = document.getElementById("canvas-container");
         container.innerHTML = "";
-        container.appendChild(canvas);
-    
-        predict(canvas); // Run prediction on the captured frame
+        container.appendChild(captureCanvas);
+
+        // Predict using the still image
+        await predict(captureCanvas);
+    }
+
+    async function handleImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!model) {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+        }
+
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.getElementById("canvas");
+            canvas.width = 400;
+            canvas.height = 400;
+            ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, 400, 400);
+            await predict(canvas);
+        };
+        img.src = URL.createObjectURL(file);
     }
 
     async function predict(image) {
+        if (!model) {
+            console.error("Model not loaded.");
+            return;
+        }
+
         const prediction = await model.predict(image);
         let resultText = "";
         for (let i = 0; i < maxPredictions; i++) {
@@ -121,8 +114,10 @@ async function handleImage(event) {
     }
 </script>
 
+
 </body>
 </html>
+
 
 
 
