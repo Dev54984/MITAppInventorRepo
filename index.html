@@ -41,8 +41,15 @@
   <canvas id="canvas" width="400" height="400"></canvas>
   <div id="output">Select an image to classify.</div>
 
+  <img id="preview" width="300" />
+
   <script type="text/javascript">
+
+    document.getElementById("preview").src = "https://dev54984.github.io/MITAppInventorRepo/images/sample.jpg";
+    
     const modelPath  = "https://dev54984.github.io/MITAppInventorRepo/"; // model files are in the same folder
+    const imageURL = "https://dev54984.github.io/MITAppInventorRepo/images/sample.jpg";
+    const img = new Image();
 
     let model, maxPredictions;
 
@@ -83,10 +90,11 @@
       };
 
       // Trigger image load
-      img.src = URL.createObjectURL(file);
+       img.src = imageURL;
     });
   </script>
 
 </body>
 </html>
+
 
