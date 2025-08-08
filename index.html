@@ -1,12 +1,9 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Waste Classifier</title>
-<!-- TensorFlow.js core -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-
-<!-- Teachable Machine Image library (this is what you're missing) -->
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
   <style>
     body {
@@ -95,6 +92,91 @@
   </script>
 
 </body>
+</html>-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Waste Classifier</title>
+
+  <!-- TensorFlow.js core -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <!-- Teachable Machine Image library -->
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    #output {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Waste Classification</h1>
+
+  <canvas id="canvas" width="400" height="400"></canvas>
+  <div id="output">Loading model and image...</div>
+
+  <script>
+    const modelPath = "https://dev54984.github.io/MITAppInventorRepo/";
+    const imageURL = "https://dev54984.github.io/MITAppInventorRepo/images/sample.jpg";
+    let model, maxPredictions;
+
+    async function loadModel() {
+      const modelURL = modelPath + "model.json";
+      const metadataURL = modelPath + "metadata.json";
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+      console.log("Model loaded.");
+    }
+
+    async function loadAndClassifyImage() {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Allow GitHub-hosted image to load in canvas
+      img.onload = async () => {
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Resize canvas and draw image
+        canvas.width = 400;
+        canvas.height = 400;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, 400, 400);
+
+        // Run prediction
+        const prediction = await model.predict(canvas);
+        let resultText = "";
+        for (let i = 0; i < maxPredictions; i++) {
+          resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
+        }
+        document.getElementById("output").innerHTML = resultText;
+      };
+      img.src = imageURL;
+    }
+
+    // Run everything on page load
+    window.addEventListener("DOMContentLoaded", async () => {
+      await loadModel();
+      await loadAndClassifyImage();
+    });
+  </script>
+
+</body>
 </html>
+
+
 
 
