@@ -21,7 +21,7 @@
       border: 1px solid #ccc;
       margin-top: 20px;
     }
-    button, input {
+    input {
       margin: 10px;
       padding: 10px;
       font-size: 16px;
@@ -32,17 +32,17 @@
 
   <h1>Waste Classification</h1>
 
-  <input type="file" accept="image/*" onchange="handleImage(event)">
+  <input id="imageInput" type="file" accept="image/*">
   <br>
   <canvas id="canvas" width="400" height="400"></canvas>
   <div id="output"></div>
 
   <script type="text/javascript">
-    const URL = "./"; // 🔁 Replace this with your actual model folder path or URL
+    const URL = "https://dev54984.github.io/MITAppInventorRepo/"; // Replace with the folder where model.json + metadata.json are hosted
 
     let model, maxPredictions;
 
-    // Load the model
+    // Load the model once
     async function loadModel() {
       const modelURL = URL + "model.json";
       const metadataURL = URL + "metadata.json";
@@ -50,10 +50,13 @@
       maxPredictions = model.getTotalClasses();
     }
 
-    // Handle uploaded image
+    // Handle image upload
     async function handleImage(event) {
       const file = event.target.files[0];
-      if (!file) return;
+      if (!file) {
+        console.warn("No file selected.");
+        return;
+      }
 
       if (!model) {
         await loadModel();
@@ -64,7 +67,7 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // Resize image to fit canvas
+        // Resize canvas and draw image
         canvas.width = 400;
         canvas.height = 400;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -82,9 +85,4 @@
       for (let i = 0; i < maxPredictions; i++) {
         resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
       }
-      document.getElementById("output").innerHTML = resultText;
-    }
-  </script>
-
-</body>
-</html>
+      document.getElementById("output").innerHTML = resultText
