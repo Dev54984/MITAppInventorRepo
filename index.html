@@ -1,123 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Waste Classifier</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
-        #output { margin-top: 20px; font-size: 18px; font-weight: bold; }
-        button { margin: 10px; padding: 10px; font-size: 16px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Waste Classifier</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    #output {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+    button, input {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
 
-<h1>Waste Classification</h1>
-<button onclick="init()">Use Webcam</button>
-<button onclick="captureImage()">Capture</button>
-<input type="file" accept="image/*" onchange="handleImage(event)">
+  <h1>Waste Classification</h1>
 
-<div id="canvas-container">
-    <canvas id="canvas" width="400" height="400"></canvas>
-</div>
+  <input type="file" accept="image/*" onchange="handleImage(event)">
+  <br>
+  <canvas id="canvas" width="400" height="400"></canvas>
+  <div id="output"></div>
 
-<div id="output"></div>
-<script type="text/javascript">
-    const URL = "https://dev54984.github.io/MITAppInventorRepo/"; // Set to your model path, e.g., "https://yourusername.github.io/model/"
+  <script type="text/javascript">
+    const URL = "./"; // 🔁 Replace this with your actual model folder path or URL
 
-    let model, webcam, ctx, maxPredictions;
+    let model, maxPredictions;
 
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        // Load the model
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Setup webcam
-        const flip = true;
-        webcam = new tmImage.Webcam(400, 400, flip);
-        await webcam.setup();
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // Attach webcam canvas
-        const container = document.getElementById("canvas-container");
-        container.innerHTML = "";
-        container.appendChild(webcam.canvas);
+    // Load the model
+    async function loadModel() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
     }
 
-    async function loop() {
-        webcam.update();
-        window.requestAnimationFrame(loop);
-    }
-
-    async function captureImage() {
-        if (!webcam) {
-            alert("Please start the webcam first.");
-            return;
-        }
-
-        // Draw current frame to a new canvas
-        const captureCanvas = document.createElement("canvas");
-        captureCanvas.width = 400;
-        captureCanvas.height = 400;
-        const captureCtx = captureCanvas.getContext("2d");
-        captureCtx.drawImage(webcam.canvas, 0, 0, 400, 400);
-
-        // Show the captured image
-        const container = document.getElementById("canvas-container");
-        container.innerHTML = "";
-        container.appendChild(captureCanvas);
-
-        // Predict using the still image
-        await predict(captureCanvas);
-    }
-
+    // Handle uploaded image
     async function handleImage(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+      const file = event.target.files[0];
+      if (!file) return;
 
-        if (!model) {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
-        }
+      if (!model) {
+        await loadModel();
+      }
 
-        const img = new Image();
-        img.onload = async () => {
-            const canvas = document.getElementById("canvas");
-            canvas.width = 400;
-            canvas.height = 400;
-            ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, 400, 400);
-            await predict(canvas);
-        };
-        img.src = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Resize image to fit canvas
+        canvas.width = 400;
+        canvas.height = 400;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Predict
+        await predict(canvas);
+      };
+      img.src = URL.createObjectURL(file);
     }
 
     async function predict(image) {
-        if (!model) {
-            console.error("Model not loaded.");
-            return;
-        }
-
-        const prediction = await model.predict(image);
-        let resultText = "";
-        for (let i = 0; i < maxPredictions; i++) {
-            resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
-        }
-        document.getElementById("output").innerHTML = resultText;
+      const prediction = await model.predict(image);
+      let resultText = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        resultText += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%<br>`;
+      }
+      document.getElementById("output").innerHTML = resultText;
     }
-</script>
-
+  </script>
 
 </body>
 </html>
-
-
-
-
